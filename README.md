@@ -1,6 +1,6 @@
 # UnityObjectMotionBlurSample
 
-This project is a port of PostProsessing's object motion blur to URP.
+This project is a port of PostProsessing's object motion blur to Universal Render Pipeline.
 
 |  Disable Object MotionBlur |  Enable Object MotionBlur  |
 | ---- | ---- |
