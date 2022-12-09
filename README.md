@@ -1,6 +1,6 @@
 # UnityObjectMotionBlurSample
 
-This project is a port of [PostProsessing's object motion blur](https://github.com/Unity-Technologies/PostProcessing/tree/v2/PostProcessing) to Universal Render Pipeline.
+This project is a port of [PostProsessing's object motion blur](https://github.com/Unity-Technologies/PostProcessing/tree/v2) to Universal Render Pipeline.
 
 |  Disable Object MotionBlur |  Enable Object MotionBlur  |
 | ---- | ---- |
