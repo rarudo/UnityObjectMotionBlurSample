@@ -2,10 +2,10 @@ Shader "Hidden/PostEffect/ObjectMotionBlur"
 {
     HLSLINCLUDE
         #pragma target 3.0
-        
-        #include "Packages/com.unity.render-pipelines.universal/Shaders/PostProcessing/Common.hlsl"
+
         #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl"
-        
+        #include "Packages/com.unity.render-pipelines.core/Runtime/Utilities/Blit.hlsl"
+
         // SourceTexture
         TEXTURE2D(_SourceTex); float4 _SourceTex_TexelSize;
 
@@ -58,8 +58,9 @@ Shader "Hidden/PostEffect/ObjectMotionBlur"
         // Velocity texture setup
         half4 FragVelocitySetup(Varyings i) : SV_Target
         {
+            float2 uv = i.texcoord;
             // Sample the motion vector.
-            float2 v = SAMPLE_TEXTURE2D(_MotionVectorTexture, sampler_MotionVectorTexture, i.uv).rg;
+            float2 v = SAMPLE_TEXTURE2D(_MotionVectorTexture, sampler_MotionVectorTexture, uv).rg;
 
             // Apply the exposure time and convert to the pixel space.
             v *= (_VelocityScale * 0.5) * _MotionVectorTexture_TexelSize.zw;
@@ -68,7 +69,7 @@ Shader "Hidden/PostEffect/ObjectMotionBlur"
             v /= max(1.0, length(v) * _RcpMaxBlurRadius);
 
             // Sample the depth of the pixel.
-            half d = Linear01Depth(SAMPLE_DEPTH_TEXTURE(_CameraDepthTexture, sampler_CameraDepthTexture, i.uv),_ZBufferParams);
+            half d = Linear01Depth(SAMPLE_DEPTH_TEXTURE(_CameraDepthTexture, sampler_CameraDepthTexture, uv),_ZBufferParams);
 
             // Pack into 10/10/10/2 format.
             return half4((v * _RcpMaxBlurRadius + 1.0) * 0.5, d, 0.0);
@@ -84,10 +85,10 @@ Shader "Hidden/PostEffect/ObjectMotionBlur"
         {
             float4 d = _SourceTex_TexelSize.xyxy * float4(-0.5, -0.5, 0.5, 0.5);
 
-            half2 v1 = SAMPLE_TEXTURE2D(_SourceTex, sampler_LinearClamp, i.uv + d.xy).rg;
-            half2 v2 = SAMPLE_TEXTURE2D(_SourceTex, sampler_LinearClamp, i.uv + d.zy).rg;
-            half2 v3 = SAMPLE_TEXTURE2D(_SourceTex, sampler_LinearClamp, i.uv + d.xw).rg;
-            half2 v4 = SAMPLE_TEXTURE2D(_SourceTex, sampler_LinearClamp, i.uv + d.zw).rg;
+            half2 v1 = SAMPLE_TEXTURE2D(_SourceTex, sampler_LinearClamp, i.texcoord + d.xy).rg;
+            half2 v2 = SAMPLE_TEXTURE2D(_SourceTex, sampler_LinearClamp, i.texcoord + d.zy).rg;
+            half2 v3 = SAMPLE_TEXTURE2D(_SourceTex, sampler_LinearClamp, i.texcoord + d.xw).rg;
+            half2 v4 = SAMPLE_TEXTURE2D(_SourceTex, sampler_LinearClamp, i.texcoord + d.zw).rg;
 
             v1 = (v1 * 2.0 - 1.0) * _MaxBlurRadius;
             v2 = (v2 * 2.0 - 1.0) * _MaxBlurRadius;
@@ -102,10 +103,10 @@ Shader "Hidden/PostEffect/ObjectMotionBlur"
         {
             float4 d = _SourceTex_TexelSize.xyxy * float4(-0.5, -0.5, 0.5, 0.5);
 
-            half2 v1 = SAMPLE_TEXTURE2D(_SourceTex, sampler_LinearClamp, i.uv + d.xy).rg;
-            half2 v2 = SAMPLE_TEXTURE2D(_SourceTex, sampler_LinearClamp, i.uv + d.zy).rg;
-            half2 v3 = SAMPLE_TEXTURE2D(_SourceTex, sampler_LinearClamp, i.uv + d.xw).rg;
-            half2 v4 = SAMPLE_TEXTURE2D(_SourceTex, sampler_LinearClamp, i.uv + d.zw).rg;
+            half2 v1 = SAMPLE_TEXTURE2D(_SourceTex, sampler_LinearClamp, i.texcoord + d.xy).rg;
+            half2 v2 = SAMPLE_TEXTURE2D(_SourceTex, sampler_LinearClamp, i.texcoord + d.zy).rg;
+            half2 v3 = SAMPLE_TEXTURE2D(_SourceTex, sampler_LinearClamp, i.texcoord + d.xw).rg;
+            half2 v4 = SAMPLE_TEXTURE2D(_SourceTex, sampler_LinearClamp, i.texcoord + d.zw).rg;
 
             return half4(MaxV(MaxV(MaxV(v1, v2), v3), v4), 0.0, 0.0);
         }
@@ -113,7 +114,7 @@ Shader "Hidden/PostEffect/ObjectMotionBlur"
         // TileMax filter (variable width)
         half4 FragTileMaxV(Varyings i) : SV_Target
         {
-            float2 uv0 = i.uv + _SourceTex_TexelSize.xy * _TileMaxOffs.xy;
+            float2 uv0 = i.texcoord + _SourceTex_TexelSize.xy * _TileMaxOffs.xy;
 
             float2 du = float2(_SourceTex_TexelSize.x, 0.0);
             float2 dv = float2(0.0, _SourceTex_TexelSize.y);
@@ -141,17 +142,17 @@ Shader "Hidden/PostEffect/ObjectMotionBlur"
 
             float4 d = _SourceTex_TexelSize.xyxy * float4(1.0, 1.0, -1.0, 0.0);
 
-            half2 v1 = SAMPLE_TEXTURE2D(_SourceTex, sampler_LinearClamp, i.uv - d.xy).rg;
-            half2 v2 = SAMPLE_TEXTURE2D(_SourceTex, sampler_LinearClamp, i.uv - d.wy).rg;
-            half2 v3 = SAMPLE_TEXTURE2D(_SourceTex, sampler_LinearClamp, i.uv - d.zy).rg;
+            half2 v1 = SAMPLE_TEXTURE2D(_SourceTex, sampler_LinearClamp, i.texcoord - d.xy).rg;
+            half2 v2 = SAMPLE_TEXTURE2D(_SourceTex, sampler_LinearClamp, i.texcoord - d.wy).rg;
+            half2 v3 = SAMPLE_TEXTURE2D(_SourceTex, sampler_LinearClamp, i.texcoord - d.zy).rg;
 
-            half2 v4 = SAMPLE_TEXTURE2D(_SourceTex, sampler_LinearClamp, i.uv - d.xw).rg;
-            half2 v5 = SAMPLE_TEXTURE2D(_SourceTex, sampler_LinearClamp, i.uv).rg * cw;
-            half2 v6 = SAMPLE_TEXTURE2D(_SourceTex, sampler_LinearClamp, i.uv + d.xw).rg;
+            half2 v4 = SAMPLE_TEXTURE2D(_SourceTex, sampler_LinearClamp, i.texcoord - d.xw).rg;
+            half2 v5 = SAMPLE_TEXTURE2D(_SourceTex, sampler_LinearClamp, i.texcoord).rg * cw;
+            half2 v6 = SAMPLE_TEXTURE2D(_SourceTex, sampler_LinearClamp, i.texcoord + d.xw).rg;
 
-            half2 v7 = SAMPLE_TEXTURE2D(_SourceTex, sampler_LinearClamp, i.uv + d.zy).rg;
-            half2 v8 = SAMPLE_TEXTURE2D(_SourceTex, sampler_LinearClamp, i.uv + d.wy).rg;
-            half2 v9 = SAMPLE_TEXTURE2D(_SourceTex, sampler_LinearClamp, i.uv + d.xy).rg;
+            half2 v7 = SAMPLE_TEXTURE2D(_SourceTex, sampler_LinearClamp, i.texcoord + d.zy).rg;
+            half2 v8 = SAMPLE_TEXTURE2D(_SourceTex, sampler_LinearClamp, i.texcoord + d.wy).rg;
+            half2 v9 = SAMPLE_TEXTURE2D(_SourceTex, sampler_LinearClamp, i.texcoord + d.xy).rg;
 
             half2 va = MaxV(v1, MaxV(v2, v3));
             half2 vb = MaxV(v4, MaxV(v5, v6));
@@ -162,7 +163,7 @@ Shader "Hidden/PostEffect/ObjectMotionBlur"
 
         // -----------------------------------------------------------------------------
         // Reconstruction
-        
+
         // Interleaved gradient function from Jimenez 2014
         // http://www.iryoku.com/next-generation-post-processing-in-call-of-duty-advanced-warfare
         float GradientNoise(float2 uv)
@@ -197,15 +198,15 @@ Shader "Hidden/PostEffect/ObjectMotionBlur"
         half4 FragReconstruction(Varyings i) : SV_Target
         {
             // Color sample at the center point
-            const float4 c_p = SAMPLE_TEXTURE2D(_SourceTex, sampler_LinearClamp, i.uv);
+            const float4 c_p = SAMPLE_TEXTURE2D(_SourceTex, sampler_LinearClamp, i.texcoord);
 
             // Velocity/Depth sample at the center point
-            const float3 vd_p = SampleVelocity(i.uv);
+            const float3 vd_p = SampleVelocity(i.texcoord);
             const float l_v_p = max(length(vd_p.xy), 0.5);
             const float rcp_d_p = 1.0 / vd_p.z;
 
             // NeighborMax vector sample at the center point
-            const float2 v_max = SAMPLE_TEXTURE2D(_NeighborMaxTex, sampler_NeighborMaxTex, i.uv + JitterTile(i.uv)).xy;
+            const float2 v_max = SAMPLE_TEXTURE2D(_NeighborMaxTex, sampler_NeighborMaxTex, i.texcoord + JitterTile(i.texcoord)).xy;
             const float l_v_max = length(v_max);
             const float rcp_l_v_max = 1.0 / l_v_max;
 
@@ -219,9 +220,10 @@ Shader "Hidden/PostEffect/ObjectMotionBlur"
             // Determine the sample count.
             const half sc = floor(min(_LoopCount, l_v_max * 0.5));
 
+
             // Loop variables (starts from the outermost sample)
             const half dt = 1.0 / sc;
-            const half t_offs = (GradientNoise(i.uv) - 0.5) * dt;
+            const half t_offs = (GradientNoise(i.texcoord) - 0.5) * dt;
             float t = 1.0 - dt * 0.5;
             float count = 0.0;
 
@@ -232,7 +234,7 @@ Shader "Hidden/PostEffect/ObjectMotionBlur"
             // Color accumlation
             float4 acc = 0.0;
 
-            UNITY_LOOP
+            [loop]
             while (t > dt * 0.25)
             {
                 // Sampling direction (switched per every two samples)
@@ -245,8 +247,8 @@ Shader "Hidden/PostEffect/ObjectMotionBlur"
                 const float l_t = l_v_max * abs(t_s);
 
                 // UVs for the sample position
-                const float2 uv0 = i.uv + v_s * t_s * _SourceTex_TexelSize.xy;
-                const float2 uv1 = i.uv + v_s * t_s * _VelocityTex_TexelSize.xy;
+                const float2 uv0 = i.texcoord + v_s * t_s * _SourceTex_TexelSize.xy;
+                const float2 uv1 = i.texcoord + v_s * t_s * _VelocityTex_TexelSize.xy;
 
                 // Color sample
                 const float3 c = SAMPLE_TEXTURE2D_LOD(_SourceTex, sampler_LinearClamp, uv0, 0.0).rgb;
@@ -291,8 +293,9 @@ Shader "Hidden/PostEffect/ObjectMotionBlur"
         // (0) Velocity texture setup
         Pass
         {
-            HLSLPROGRAM
+            Name "Velocity Texture Setup"
 
+            HLSLPROGRAM
                 #pragma vertex Vert
                 #pragma fragment FragVelocitySetup
 
@@ -302,8 +305,9 @@ Shader "Hidden/PostEffect/ObjectMotionBlur"
         // (1) TileMax filter (2 pixel width with normalization)
         Pass
         {
-            HLSLPROGRAM
+            Name "TileMax Filter (2px normalized)"
 
+            HLSLPROGRAM
                 #pragma vertex Vert
                 #pragma fragment FragTileMax1
 
@@ -313,8 +317,9 @@ Shader "Hidden/PostEffect/ObjectMotionBlur"
         //  (2) TileMax filter (2 pixel width)
         Pass
         {
-            HLSLPROGRAM
+            Name "TileMax filter (2px)"
 
+            HLSLPROGRAM
                 #pragma vertex Vert
                 #pragma fragment FragTileMax2
 
@@ -324,8 +329,9 @@ Shader "Hidden/PostEffect/ObjectMotionBlur"
         // (3) TileMax filter (variable width)
         Pass
         {
-            HLSLPROGRAM
+            Name "TileMax Filter (variable)"
 
+            HLSLPROGRAM
                 #pragma vertex Vert
                 #pragma fragment FragTileMaxV
 
@@ -335,8 +341,9 @@ Shader "Hidden/PostEffect/ObjectMotionBlur"
         // (4) NeighborMax filter
         Pass
         {
-            HLSLPROGRAM
+            Name "NeighborMax Filter"
 
+            HLSLPROGRAM
                 #pragma vertex Vert
                 #pragma fragment FragNeighborMax
 
@@ -346,8 +353,9 @@ Shader "Hidden/PostEffect/ObjectMotionBlur"
         // (5) Reconstruction filter
         Pass
         {
-            HLSLPROGRAM
+            Name "Reconstruction Filter"
 
+            HLSLPROGRAM
                 #pragma vertex Vert
                 #pragma fragment FragReconstruction
 
