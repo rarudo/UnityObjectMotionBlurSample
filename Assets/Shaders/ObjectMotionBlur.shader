@@ -4,7 +4,52 @@ Shader "Hidden/PostEffect/ObjectMotionBlur"
         #pragma target 3.0
 
         #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl"
-        #include "Packages/com.unity.render-pipelines.core/Runtime/Utilities/Blit.hlsl"
+        #include "Packages/com.unity.render-pipelines.core/ShaderLibrary/Common.hlsl"
+        #include "Packages/com.unity.render-pipelines.core/ShaderLibrary/Color.hlsl"
+        #include "Packages/com.unity.render-pipelines.core/ShaderLibrary/UnityInstancing.hlsl"
+        #include "Packages/com.unity.render-pipelines.core/ShaderLibrary/GlobalSamplers.hlsl"
+        #include "Packages/com.unity.render-pipelines.core/ShaderLibrary/EntityLighting.hlsl"
+
+        #if SHADER_API_GLES
+        struct Attributes
+        {
+            float4 positionOS       : POSITION;
+            float2 uv               : TEXCOORD0;
+            UNITY_VERTEX_INPUT_INSTANCE_ID
+        };
+        #else
+        struct Attributes
+        {
+            uint vertexID : SV_VertexID;
+            UNITY_VERTEX_INPUT_INSTANCE_ID
+        };
+        #endif
+
+        struct Varyings
+        {
+            float4 positionCS : SV_POSITION;
+            float2 texcoord   : TEXCOORD0;
+            UNITY_VERTEX_OUTPUT_STEREO
+        };
+
+        Varyings Vert(Attributes input)
+        {
+            Varyings output;
+            UNITY_SETUP_INSTANCE_ID(input);
+            UNITY_INITIALIZE_VERTEX_OUTPUT_STEREO(output);
+
+        #if SHADER_API_GLES
+            float4 pos = input.positionOS;
+            float2 uv  = input.uv;
+        #else
+            float4 pos = GetFullScreenTriangleVertexPosition(input.vertexID);
+            float2 uv  = GetFullScreenTriangleTexCoord(input.vertexID);
+        #endif
+
+            output.positionCS = pos;
+            output.texcoord = uv;
+            return output;
+        }
 
         // SourceTexture
         TEXTURE2D(_SourceTex); float4 _SourceTex_TexelSize;
@@ -38,12 +83,6 @@ Shader "Hidden/PostEffect/ObjectMotionBlur"
         // Filter parameters/coefficients
         half _LoopCount;
 
-        // struct VaryingsDefault
-        // {
-        //     float4 vertex : SV_POSITION;
-        //     float2 texcoord : TEXCOORD0;
-        //     float2 texcoordStereo : TEXCOORD1;
-        // };
 
         // -----------------------------------------------------------------------------
         // Prefilter
@@ -62,10 +101,10 @@ Shader "Hidden/PostEffect/ObjectMotionBlur"
             // Sample the motion vector.
             float2 v = SAMPLE_TEXTURE2D(_MotionVectorTexture, sampler_MotionVectorTexture, uv).rg;
 
-            // Apply the exposure time and convert to the pixel space.
+            // // Apply the exposure time and convert to the pixel space.
             v *= (_VelocityScale * 0.5) * _MotionVectorTexture_TexelSize.zw;
 
-            // Clamp the vector with the maximum blur radius.
+            // // Clamp the vector with the maximum blur radius.
             v /= max(1.0, length(v) * _RcpMaxBlurRadius);
 
             // Sample the depth of the pixel.
