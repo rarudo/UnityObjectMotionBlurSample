@@ -12,9 +12,10 @@ public class ObjectMotionBlurFeature : ScriptableRendererFeature
 
         _objectMotionBlurPass = new ObjectMotionBlurPass(shader)
         {
-            renderPassEvent = RenderPassEvent.BeforeRenderingPostProcessing
+            renderPassEvent = RenderPassEvent.AfterRenderingPostProcessing
         };
     }
+
 
     public override void AddRenderPasses(ScriptableRenderer renderer, ref RenderingData renderingData)
     {
